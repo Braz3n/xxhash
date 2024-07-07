@@ -1,0 +1,29 @@
+srcs = ./src/xxhash32.sv
+sims = ./sim/xxhash32_tb.sv
+tools = ./tools
+waveform = simulation.wbd
+
+testbench = xxhash32_tb
+
+xvlog_path = xsim.dir/work/
+xelab_path = xsim.dir/work.$testbench/
+
+project_dir = ./proj
+project_name = design_1
+
+work_dir = work
+
+rule compile
+    command = xvlog --sv --work $work_dir --include $tools $in
+
+rule testbench
+    command = xelab -L $work_dir --debug all $testbench --include $tools
+
+rule simulate
+    command = xsim work.$testbench --tclbatch ./sim/simulation.tcl --onfinish quit --wdb $waveform
+
+build $xvlog_path/work.rlx $xvlog_path/xxhash32_tb.sdb $xvlog_path/xxhash32.sdb | $xvlog_path xvlog.log xvlog.pb: compile $srcs $sims
+
+build $xelab_path/Compile_Options.txt $xelab_path/xsim.dbg $xelab_path/xsim.mem $xelab_path/xsim.reloc $xelab_path/xsim.rtti $xelab_path/xsim.svtype $xelab_path/xsim.type $xelab_path/xsimk $xelab_path/xsimSettings.ini xsim.dir/: testbench $xvlog_path/xxhash32_tb.sdb
+
+build $xelab_path/TempBreakPointFile.txt $xelab_path/xsim_script.tcl $xelab_path/xsim.xdbg $xelab_path/xsimcrash.log $xelab_path/xsimkernel.log xsim.dir/$waveform/xsimSettings.ini xsim.dir/$waveform/ $xelab_path $waveform: simulate $xelab_path/Compile_Options.txt

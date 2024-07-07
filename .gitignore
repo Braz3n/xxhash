@@ -1,0 +1,11 @@
+.Xil/
+xsim.dir/
+.vscode/
+reference/reference_dump.txt
+reference/build/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.jou
+*.log
+*.wdb
