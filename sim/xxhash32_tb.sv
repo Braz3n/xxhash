@@ -48,7 +48,7 @@ module xxhash32_tb;
         int expected_output;
         int res;
 
-        fd = $fopen("./reference/reference_dump.txt", "r");
+        fd = $fopen("./reference/build/reference_dump.txt", "r");
         if (fd) $display("Reference dump opened successfully");
         else $fatal("Failed to open reference dump");
 

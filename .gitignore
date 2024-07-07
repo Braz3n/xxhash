@@ -1,11 +1,12 @@
 .Xil/
 xsim.dir/
 .vscode/
-reference/reference_dump.txt
 reference/build/
+.ninja_log
 *.cache/
 *.hw/
 *.ip_user_files/
 *.jou
 *.log
 *.wdb
+*.pb

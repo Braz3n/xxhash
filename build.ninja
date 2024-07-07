@@ -1,7 +1,9 @@
 srcs = ./src/xxhash32.sv
 sims = ./sim/xxhash32_tb.sv
 tools = ./tools
-waveform = simulation.wbd
+waveform = simulation
+
+reference_dump_path = ./reference/build/reference_dump.txt
 
 testbench = xxhash32_tb
 
@@ -19,11 +21,53 @@ rule compile
 rule testbench
     command = xelab -L $work_dir --debug all $testbench --include $tools
 
+rule reference
+    command = cd ./reference && rm -rf build && meson setup build && cd build && meson compile && ./xxhash32_reference
+
 rule simulate
     command = xsim work.$testbench --tclbatch ./sim/simulation.tcl --onfinish quit --wdb $waveform
 
-build $xvlog_path/work.rlx $xvlog_path/xxhash32_tb.sdb $xvlog_path/xxhash32.sdb | $xvlog_path xvlog.log xvlog.pb: compile $srcs $sims
+rule CUSTOM_COMMAND
+    command = $COMMAND
+    description = $DESC
+    restat = 1
 
-build $xelab_path/Compile_Options.txt $xelab_path/xsim.dbg $xelab_path/xsim.mem $xelab_path/xsim.reloc $xelab_path/xsim.rtti $xelab_path/xsim.svtype $xelab_path/xsim.type $xelab_path/xsimk $xelab_path/xsimSettings.ini xsim.dir/: testbench $xvlog_path/xxhash32_tb.sdb
+build PHONY: phony 
 
-build $xelab_path/TempBreakPointFile.txt $xelab_path/xsim_script.tcl $xelab_path/xsim.xdbg $xelab_path/xsimcrash.log $xelab_path/xsimkernel.log xsim.dir/$waveform/xsimSettings.ini xsim.dir/$waveform/ $xelab_path $waveform: simulate $xelab_path/Compile_Options.txt
+build default-clean: CUSTOM_COMMAND PHONY
+    COMMAND = /usr/bin/ninja -t clean
+    description = Cleaning generated files
+
+build log-clean: CUSTOM_COMMAND PHONY
+    COMMAND = rm -f ./*.log ./*.jou ./*.pb
+    description = Cleaning generated files
+
+build synth-clean: CUSTOM_COMMAND PHONY
+    COMMAND = rm -rf ./xsim.dir
+    description = Cleaning generated files
+
+build sim-clean: CUSTOM_COMMAND PHONY
+    COMMAND = rm -f ./$waveform.wdb
+    description = Cleaning generated files
+
+build reference-clean: CUSTOM_COMMAND PHONY
+    COMMAND = rm -rf ./reference/build
+    description = Cleaning generated files
+
+build clean: phony log-clean synth-clean reference-clean sim-clean
+
+build $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb : compile $srcs $sims
+    description = Synthesizing RTL outputs
+
+build $xelab_path/xsimk : testbench $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb
+    description = Generating simulation executable
+
+build $waveform.wbd : simulate $xelab_path/xsimk $reference_dump_path
+    description = Running simulation
+
+build $reference_dump_path : reference ./reference/reference.cpp ./reference/xxhash/xxhash32.h
+    description = Generating reference for simulation verification
+
+build all: phony $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb $reference_dump_path $waveform.wbd
+
+default all
