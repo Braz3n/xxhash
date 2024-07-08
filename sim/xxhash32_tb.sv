@@ -16,6 +16,7 @@ module xxhash32_tb;
     logic [WORD_SIZE-1:0] input_bytes;
     logic hash_ready;
     logic [WORD_SIZE-1:0] output_hash;
+    logic all_tests_ok = 1;
 
     // Instantiate the module under test
     xxhash32 dut (
@@ -97,9 +98,13 @@ module xxhash32_tb;
             #10;
             // Verify the output of the module
             assert(output_hash == expected_output);
+            all_tests_ok = output_hash == expected_output;
 
         end
-        $display("All Test Cases OK");
+        if (all_tests_ok)
+            $display("All Test Cases OK");
+        else
+            $display("Test Cases Failed!");
         $finish;
     end
 
