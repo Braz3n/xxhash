@@ -49,7 +49,7 @@ module xxhash32_tb;
         int expected_output;
         int res;
 
-        fd = $fopen("./reference/build/reference_dump.txt", "r");
+        fd = $fopen("./reference/build/reference_dump_xxhash32.txt", "r");
         if (fd) $display("Reference dump opened successfully");
         else $fatal("Failed to open reference dump");
 
@@ -96,7 +96,7 @@ module xxhash32_tb;
             seed_in = 0;
             // Wait for the hash to be produced
             while (~hash_ready) begin
-            #10;
+                #10;
             end
 
             // Verify the output of the module
