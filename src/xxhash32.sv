@@ -22,56 +22,63 @@ module xxhash32 #(
     logic input_buffer_flag = 0;
     int   input_buffer_head = 0;
     logic input_buffer_full = 0;
-    logic [63:0] bytes_processed = 0;
+    int processing_buffer_index = 0;
+    logic processing_buffer = 0;
+    logic [63:0] bytes_received = 0;
     logic [WORD_SIZE-1:0] result;
     assign output_hash = result;
 
     function automatic logic [WORD_SIZE-1:0] rotate_left(logic [WORD_SIZE-1:0] in, logic [7:0] bits);
-        // rotate_left = (in << bits) | (bits >> (WORD_SIZE - bits));
         rotate_left = (in << bits) | (in >> (WORD_SIZE - bits));
     endfunction
 
     always_ff @(posedge clk) begin
+        input_buffer_full = 0;
         if (seed_in) begin
             // Seed the hash state
             state_array[0] = input_bytes + Prime1 + Prime2;
             state_array[1] = input_bytes + Prime2;
             state_array[2] = input_bytes;
             state_array[3] = input_bytes - Prime1;
-            bytes_processed = 0;
+            bytes_received = 0;
             hash_ready = 0;
             input_buffer_head = 0;
-            input_buffer_full = 0;
-        end else begin
-            if (add_to_hash & ~request_hash) begin
-                buffer_array[input_buffer_flag][input_buffer_head] = input_bytes;
-                if (input_buffer_head == BUFFER_COUNT - 1) begin
-                    input_buffer_head = 0;
-                    input_buffer_flag = ~input_buffer_flag;
-                    input_buffer_full = 1;
-                end else begin
-                    input_buffer_head += 1;
-                    input_buffer_full = 0;
-                end;
+        end else if (add_to_hash) begin
+            buffer_array[input_buffer_flag][input_buffer_head] = input_bytes;
+            bytes_received += WORD_SIZE / 8;
+            if (input_buffer_head == BUFFER_COUNT - 1) begin
+                input_buffer_head = 0;
+                input_buffer_flag = ~input_buffer_flag;
+                input_buffer_full = 1;
             end else begin
-                input_buffer_full = 0;
-            end;
-        end;
+                input_buffer_head += 1;
+            end
+        end
     end;
 
     always_ff @(posedge clk) begin
         if (input_buffer_full == 1) begin
-            for (int i = 0; i < STATE_COUNT; i++) begin
-                state_array[i] = rotate_left(state_array[i] + buffer_array[~input_buffer_flag][i] * Prime2, 13) * Prime1;
-            end;
-            bytes_processed += WORD_SIZE / 8 * STATE_COUNT;
-        end;
+            processing_buffer = 1;
+            processing_buffer_index = 0;
+        end
+
+        if (processing_buffer && processing_buffer_index < BUFFER_COUNT) begin
+            state_array[processing_buffer_index] = rotate_left(
+                    state_array[processing_buffer_index] + 
+                    buffer_array[~input_buffer_flag][processing_buffer_index] * 
+                    Prime2, 13
+                ) * Prime1;
+            processing_buffer_index++;
+        end else begin
+            processing_buffer = 0;
+            processing_buffer_index = 0;
+        end
     end;
 
     always_ff @(posedge clk) begin
-        if (request_hash && ~add_to_hash) begin
-            result = bytes_processed + WORD_SIZE / 8 * input_buffer_head;
-            if (bytes_processed >= 16) begin
+        if (request_hash && ~add_to_hash && ~processing_buffer) begin
+            result = bytes_received;
+            if (bytes_received >= 16) begin
                 result += rotate_left(state_array[0],  1) +
                           rotate_left(state_array[1],  7) +
                           rotate_left(state_array[2], 12) +
@@ -80,12 +87,14 @@ module xxhash32 #(
                 result += state_array[2] + Prime5;
             end;
 
-            if (input_buffer_head != 0) begin
-                // There's leftover data in the buffer
-                for (int i = 0; i < input_buffer_head; i++) begin
-                    result = rotate_left(result + buffer_array[input_buffer_flag][i] * Prime3, 17) * Prime4;
-                end;
-            end;
+            if (input_buffer_head > 0)  // Index 0 is populated
+                result = rotate_left(result + buffer_array[input_buffer_flag][0] * Prime3, 17) * Prime4;
+            if (input_buffer_head > 1)  // Index 1 is populated
+                result = rotate_left(result + buffer_array[input_buffer_flag][1] * Prime3, 17) * Prime4;
+            if (input_buffer_head > 2)  // Index 2 is populated
+                result = rotate_left(result + buffer_array[input_buffer_flag][2] * Prime3, 17) * Prime4;
+            // Index 3 is never populated at this stage of the algorithm. If the 3rd item is populated, then
+            // the whole buffer would have been processed.
 
             // In the original implementation there was a step for handling single bytes, 
             // This implementation only deals in whole words, however.

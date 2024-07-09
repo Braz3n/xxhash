@@ -90,15 +90,18 @@ module xxhash32_tb;
                 input_bytes = csv_ints[i + 2];  // Offset by 2 to index into the array correctly
                 #10;
             end
+
             add_to_hash = 0;
             request_hash = 1;
             seed_in = 0;
+            // Wait for the hash to be produced
+            while (~hash_ready) begin
+            #10;
+            end
 
-            #10;
-            #10;
             // Verify the output of the module
             assert(output_hash == expected_output);
-            all_tests_ok = output_hash == expected_output;
+            all_tests_ok &= output_hash == expected_output;
 
         end
         if (all_tests_ok)
