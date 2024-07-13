@@ -1,14 +1,22 @@
-srcs = ./src/xxhash32.sv
-sims = ./sim/xxhash32_tb.sv
+srcs_32 = ./src/xxhash32.sv
+srcs_64 = ./src/xxhash64.sv
+sims_32 = ./sim/xxhash32_tb.sv
+sims_64 = ./sim/xxhash64_tb.sv
 tools = ./tools
-waveform = simulation
 
-reference_dump_path = ./reference/build/reference_dump.txt
+waveform_32 = simulation_32
 
-testbench = xxhash32_tb
+waveform_64 = simulation_64
+
+reference_dump_path_32 = ./reference/build/reference_dump_xxhash32.txt
+reference_dump_path_64 = ./reference/build/reference_dump_xxhash64.txt
+
+testbench_32 = xxhash32_tb
+testbench_64 = xxhash64_tb
 
 xvlog_path = xsim.dir/work/
-xelab_path = xsim.dir/work.$testbench/
+xelab_path_32 = xsim.dir/work.$testbench_32/
+xelab_path_64 = xsim.dir/work.$testbench_64/
 
 project_dir = ./proj
 project_name = design_1
@@ -56,18 +64,37 @@ build reference-clean: CUSTOM_COMMAND PHONY
 
 build clean: phony log-clean synth-clean reference-clean sim-clean
 
-build $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb : compile $srcs $sims
-    description = Synthesizing RTL outputs
+build $xvlog_path/helper.sdb : compile ./tools/helper.sv
+    description = Synthesizing RTL helper tools
 
-build $xelab_path/xsimk : testbench $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb
-    description = Generating simulation executable
+build $xvlog_path/xxhash32_tb.sdb $xvlog_path/xxhash32.sdb : compile $srcs_32 $sims_32
+    description = Synthesizing RTL outputs for xxhash32
 
-build $waveform.wbd : simulate $xelab_path/xsimk $reference_dump_path
+build $xvlog_path/xxhash64_tb.sdb $xvlog_path/xxhash64.sdb : compile $srcs_64 $sims_64
+    description = Synthesizing RTL outputs for xxhash64
+
+build $xelab_path_32/xsimk : testbench $xvlog_path/xxhash32_tb.sdb $xvlog_path/xxhash32.sdb $xvlog_path/helper.sdb
+    description = Generating simulation executable for xxhash32
+    testbench = $testbench_32
+
+build $xelab_path_64/xsimk : testbench $xvlog_path/xxhash64_tb.sdb $xvlog_path/xxhash64.sdb $xvlog_path/helper.sdb
+    description = Generating simulation executable for xxhash64
+    testbench = $testbench_64
+
+build $waveform_32.wbd : simulate $xelab_path_32/xsimk $reference_dump_path_32
+    description = Running simulation for xxhash32
+    testbench = $testbench_32
+    waveform = $waveform_32
+
+build $waveform_64.wbd : simulate $xelab_path_64/xsimk $reference_dump_path_64
     description = Running simulation
+    testbench = $testbench_64
+    waveform = $waveform_64
 
-build $reference_dump_path : reference ./reference/reference.cpp ./reference/xxhash/xxhash32.h
+
+build $reference_dump_path_32 $reference_dump_path_64 : reference ./reference/reference.cpp ./reference/xxhash/xxhash32.h ./reference/xxhash/xxhash64.h
     description = Generating reference for simulation verification
 
-build all: phony $xvlog_path/xxhash32_tb.sdb $xvlog_path/helper.sdb $xvlog_path/xxhash32.sdb $reference_dump_path $waveform.wbd
+build all: phony $waveform_32.wbd $waveform_64.wbd
 
 default all

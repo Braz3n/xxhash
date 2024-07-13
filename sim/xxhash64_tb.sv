@@ -1,11 +1,11 @@
 include "helper.sv";
 
-module xxhash32_tb;
+module xxhash64_tb;
 
     import helper::*;
 
     // Constants
-    localparam WORD_SIZE = 32;
+    localparam WORD_SIZE = 64;
     localparam STATE_COUNT = 4;
 
     // Signals
@@ -19,7 +19,7 @@ module xxhash32_tb;
     logic all_tests_ok = 1;
 
     // Instantiate the module under test
-    xxhash32 dut (
+    xxhash64 dut (
         .clk(clk),
         .add_to_hash(add_to_hash),
         .request_hash(request_hash),
@@ -42,19 +42,19 @@ module xxhash32_tb;
         string csv_line;
         int parse_index;
         int output_integer;
-        int csv_ints[];
+        logic unsigned [WORD_SIZE-1:0] csv_ints[];
         int test_cases;
         int seed;
         int input_word_count;
-        int expected_output;
+        logic unsigned [WORD_SIZE-1:0] expected_output;
         int res;
 
-        fd = $fopen("./reference/build/reference_dump_xxhash32.txt", "r");
+        fd = $fopen("./reference/build/reference_dump_xxhash64.txt", "r");
         if (fd) $display("Reference dump opened successfully");
         else $fatal(1, "Failed to open reference dump");
 
         res = $fgets(csv_line, fd);
-        parse_csv_line_u32(csv_ints, csv_line);
+        parse_csv_line_u64(csv_ints, csv_line);
         test_cases = csv_ints[0];
         $display("Running %0d test cases", test_cases);
 
@@ -63,13 +63,14 @@ module xxhash32_tb;
 
             // Fetch and parse the test case
             res = $fgets(csv_line, fd);
-            parse_csv_line_u32(csv_ints, csv_line);
+            parse_csv_line_u64(csv_ints, csv_line);
             seed = csv_ints[0];
             input_word_count = csv_ints[1];
             expected_output = csv_ints[csv_ints.size()-1];
             $display("        Seed 0x%0X", seed);
             $display("        Input Word Count %0d", input_word_count);
             $display("        Expected output 0x%0X", expected_output);
+            $display("        Expected output %0d", expected_output);
 
             #10;
 
