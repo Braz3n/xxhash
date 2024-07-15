@@ -47,22 +47,18 @@ build default-clean: CUSTOM_COMMAND PHONY
     description = Cleaning generated files
 
 build log-clean: CUSTOM_COMMAND PHONY
-    COMMAND = rm -f ./*.log ./*.jou ./*.pb
+    COMMAND = rm -f ./*.log ./*.jou ./*.pb *.wdb
     description = Cleaning generated files
 
 build synth-clean: CUSTOM_COMMAND PHONY
-    COMMAND = rm -rf ./xsim.dir
-    description = Cleaning generated files
-
-build sim-clean: CUSTOM_COMMAND PHONY
-    COMMAND = rm -f ./$waveform.wdb
+    COMMAND = rm -rf ./xsim.dir ./.Xil
     description = Cleaning generated files
 
 build reference-clean: CUSTOM_COMMAND PHONY
     COMMAND = rm -rf ./reference/build
     description = Cleaning generated files
 
-build clean: phony log-clean synth-clean reference-clean sim-clean
+build clean: phony log-clean synth-clean reference-clean
 
 build $xvlog_path/helper.sdb : compile ./tools/helper.sv
     description = Synthesizing RTL helper tools
